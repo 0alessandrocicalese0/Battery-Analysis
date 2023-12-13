@@ -22,7 +22,7 @@
 
 * Per condividere le modifiche con gli altri membri del gruppo, esegui il push delle modifiche sul repository remoto. 
 
-  		git push origin branch_name
+  			git push origin branch_name
 
 * Per aggiornare il proprio file modificato da altri sul repository utilizzare il comando pull.
 
