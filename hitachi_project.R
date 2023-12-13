@@ -1,9 +1,11 @@
 library(tidyverse)
 library(ggplot2)
+load("my_workspace.RData")
+
 
 data <- readRDS("tr_13.rds")
 
-head(data)
+head(subC2)
 
 # Eliminare dati del 2017
 data$Timestamp <- as.POSIXct(data$Timestamp)
@@ -57,11 +59,9 @@ ggplot(data = subC2[1:5000,]) +
   geom_line(mapping = aes(x = Timestamp, y = Gruppo), color = 'red', size = 2) +
   labs(title = "Primi 5000 dati", x = "Date", y = "Ampere (I)")
 
-
-ggplot(data = prova) +
-  geom_point(mapping = aes(x = Timestamp, y = HMI_VBatt_C2)) +
-  labs(title = "", x = "date", y = "Voltage (V)") 
-
+ggplot(data = subC2[1:5000,]) +
+  geom_line(mapping = aes(x = Timestamp, y = HMI_VBatt_C2), color = "black") +
+  labs(title = "Primi 5000 dati", x = "Date", y = "Voltage")
 
 
 #* Integrale grafico Ampere per calcolare (A/h)
@@ -72,6 +72,20 @@ for (index in 2:(length(subC2$Timestamp))) {
 subC2$Capacità <- capacità
 
 
+intensità <- ggplot(subC2[1:2190,], aes(x = Timestamp, y = HMI_IBatt_C2)) +
+  geom_line(color = "black") +
+  #geom_line(mapping = aes(x = Timestamp, y = HMI_IBatt_C2), color = "black") +
+  facet_wrap(~Gruppo, scales = "fixed") +
+  labs(title = "Intensità C2 per Gruppo", x = "Date", y = "Ampere (I)")
 
+voltaggio <- ggplot(subC2[1:2190,], aes(x = Timestamp, y = HMI_VBatt_C2)) +
+  geom_line(color = "black") +
+  #geom_line(mapping = aes(x = Timestamp, y = HMI_VBatt_C2), color = "red") +
+  facet_wrap(~Gruppo, scales = "fixed") +
+  labs(title = "Intensità C2 per Gruppo", x = "Date", y = "Ampere (I)")
+
+ggsave("Intensità_per_gruppo.png", intensità)
+ggsave("Voltaggio_per_gruppo.png", voltaggio)
 
 save.image(file = "my_workspace.RData")
+
