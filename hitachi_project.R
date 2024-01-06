@@ -1,4 +1,5 @@
 library(tidyverse)
+library(dplyr)
 library(ggplot2)
 load("my_workspace.RData")
 
@@ -19,6 +20,19 @@ names(data)[names(data) == "_VEHICLE_SPEED"] <- "Speed"
 # Visualizziamo la velocità per i primi 1000 dati
 ggplot(data = data[0:1000,]) +
   geom_line(mapping = aes(x = Timestamp, y = Speed))
+#-------------- Aggiungiamo la colonna mese e la colonna stagione --------------
+data <- data %>%
+  mutate(mese = format(Timestamp, "%m"))
+
+# Aggiungi una nuova colonna chiamata 'stagione' al tuo dataset
+data <- data %>%
+  mutate(stagione = case_when(
+    between(as.numeric(mese), 3, 4) | between(as.numeric(mese), 9, 10) ~ "primavera/autunno",
+    between(as.numeric(mese), 5, 8) ~ "estate",
+    between(as.numeric(mese), 11, 12) | between(as.numeric(mese), 1, 2) ~ "inverno",
+    TRUE ~ NA_character_
+  ))
+
 
 #------------------------ Aggiungiamo le colonne ID per segnalare se ci troviamo in fase di carica o scarica per ciascuna batteria-----------------------------------
 data$ID_C2        <- ifelse(data$HMI_IBatt_C2 >= 0,   1,  -1)
