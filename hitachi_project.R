@@ -2,21 +2,129 @@ library(tidyverse)
 library(ggplot2)
 load("my_workspace.RData")
 
-#* Leggiamo il Dataset e recuperiamo solo i dati del 2022
+#*---------------- Leggiamo il Dataset e recuperiamo solo i dati del 2022------------------
 
 data <- readRDS("tr_13.rds")
-data$Timestamp <- as.POSIXct(data$Timestamp)
+data_POC_ID <- readRDS("tab_tr_13_POC_ID.rds") #colonna contenente i valori di ID per ogni POC
+data$POC_ID <- data_POC_ID$POC_ID
+data <- subset(data, select = -POC) #eliminazione colonna POC priva di ID
+
+data$Timestamp <- as.POSIXct(data$Timestamp) # Modifichiamo il formato di Timestamp
 data  <-  data[format(data$Timestamp, "%Y") == "2022", ]
+
 
 # Rinomina la colonna relativa alla velocità
 names(data)[names(data) == "_VEHICLE_SPEED"] <- "Speed"
 
-# Visualizziamo la velocità
+# Visualizziamo la velocità per i primi 1000 dati
 ggplot(data = data[0:1000,]) +
   geom_line(mapping = aes(x = Timestamp, y = Speed))
 
-#* Studio la Batteria 2
-subC2 <- data[, c("Timestamp", "Speed", "HMI_IBatt_C2", "HMI_VBatt_C2")]
+#------------------------ Aggiungiamo le colonne ID per segnalare se ci troviamo in fase di carica o scarica per ciascuna batteria-----------------------------------
+data$ID_C2        <- ifelse(data$HMI_IBatt_C2 >= 0,   1,  -1)
+data$ID_C4        <- ifelse(data$HMI_IBatt_C4 >= 0,   1,  -1)
+data$ID_C5        <- ifelse(data$HMI_IBatt_C5 >= 0,   1,  -1)
+data$ID_C7        <- ifelse(data$HMI_IBatt_C7 >= 0,   1,  -1)
+
+
+# Aggiungiamo una colonna di segnalazione quando non c'è concordanza tra le fasi di carica/scarica delle diverse batterie
+data$Diversi <- ifelse(rowSums(data[, c("ID_C2", "ID_C4", "ID_C5", "ID_C7")] != data$ID_C2) > 0, 1, 0)
+
+
+# -------------- Aggiungiamo la colonna Gruppo per ciascuna batteria --------------
+
+
+##*C2
+data$Derivata_C2  <- c(0, as.numeric(diff(data$HMI_IBatt_C2)) / as.numeric(diff(data$Timestamp)))
+PeriodoC2         <- cumsum(c(0, diff(data$Timestamp) > 15))
+
+#* Contatore Gruppi
+gruppo <- rep(0, length(data$Timestamp))
+
+for (index in 2:(length(data$Timestamp))) {
+  if (data$Derivata_C2[index] < 0 
+      && data$ID_C2[index]      !=  data$ID_C2[index-1] 
+      || PeriodoC2[index] !=  PeriodoC2[index-1]) {
+    gruppo[index] <-  1
+  }
+  else {
+    gruppo[index] <-  0
+  }
+}
+data$Gruppo_C2 <- cumsum(gruppo)
+data <- subset(data, select = -Derivata_C2)
+
+
+##*C4
+data$Derivata_C4  <- c(0, as.numeric(diff(data$HMI_IBatt_C4)) / as.numeric(diff(data$Timestamp)))
+PeriodoC4        <- cumsum(c(0, diff(data$Timestamp) > 15))
+
+#* Contatore Gruppi
+gruppo <- rep(0, length(data$Timestamp))
+
+for (index in 2:(length(data$Timestamp))) {
+  if (data$Derivata_C4[index] < 0 
+      && data$ID_C4[index]      !=  data$ID_C4[index-1] 
+      || PeriodoC4[index] !=  PeriodoC4[index-1]) {
+    gruppo[index] <-  1
+  }
+  else {
+    gruppo[index] <-  0
+  }
+}
+data$Gruppo_C4 <- cumsum(gruppo)
+data <- subset(data, select = -Derivata_C4)
+
+
+##*C5
+data$Derivata_C5  <- c(0, as.numeric(diff(data$HMI_IBatt_C5)) / as.numeric(diff(data$Timestamp)))
+PeriodoC5        <- cumsum(c(0, diff(data$Timestamp) > 15))
+
+#* Contatore Gruppi
+gruppo <- rep(0, length(data$Timestamp))
+
+for (index in 2:(length(data$Timestamp))) {
+  if (data$Derivata_C5[index] < 0 
+      && data$ID_C5[index]      !=  data$ID_C5[index-1] 
+      || PeriodoC5[index] !=  PeriodoC5[index-1]) {
+    gruppo[index] <-  1
+  }
+  else {
+    gruppo[index] <-  0
+  }
+}
+data$Gruppo_C5 <- cumsum(gruppo)
+data <- subset(data, select = -Derivata_C5)
+
+
+##*C7
+data$Derivata_C7  <- c(0, as.numeric(diff(data$HMI_IBatt_C7)) / as.numeric(diff(data$Timestamp)))
+PeriodoC7       <- cumsum(c(0, diff(data$Timestamp) > 15))
+
+#* Contatore Gruppi
+gruppo <- rep(0, length(data$Timestamp))
+
+for (index in 2:(length(data$Timestamp))) {
+  if (data$Derivata_C7[index] < 0 
+      && data$ID_C7[index]      !=  data$ID_C7[index-1] 
+      || PeriodoC7[index] !=  PeriodoC7[index-1]) {
+    gruppo[index] <-  1
+  }
+  else {
+    gruppo[index] <-  0
+  }
+}
+data$Gruppo_C7 <- cumsum(gruppo)
+data <- subset(data, select = -Derivata_C7)
+
+
+#Aggiungiamo una colonna per controllare se i gruppi sono gli stessi per tutte le batterie
+data$GruppiDiversi <- ifelse(rowSums(data[, c("Gruppo_C2", "Gruppo_C4", "Gruppo_C5", "Gruppo_C7")] != data$Gruppo_C2) > 0, 1, 0)
+# osserviamo che i gruppi sono diversi
+
+
+#* ------------------- Focalizziamoci sulla Batteria C2 -----------------------------
+subC2 <- data[, c("Timestamp", "Speed", "HMI_IBatt_C2", "HMI_VBatt_C2","POC_ID")]
 
 # Colonne: ID - Derivata - Fase
 subC2$ID        <- ifelse(data$HMI_IBatt_C2 >= 0,   1,  -1)
@@ -31,7 +139,7 @@ for (index in 2:(length(subC2$Timestamp))) {
   if (subC2$Derivata[index] < 0 
       && subC2$ID[index]      !=  subC2$ID[index-1] 
       || Periodo[index] !=  Periodo[index-1]) {
-        gruppo[index] <-  1
+    gruppo[index] <-  1
   }
   else {
     gruppo[index] <-  0
@@ -40,19 +148,57 @@ for (index in 2:(length(subC2$Timestamp))) {
 subC2$Gruppo <- cumsum(gruppo)
 view(subC2[1:2000,])
 
-#//subC2 <- subset(subC2, select = -Periodo)
-
-
-#* Visualizzo il primo periodo
 
 # Creo la Colonna dei secondi per ogni gruppo
 subC2$second <- 0
 for (group in seq(0, max(subC2$Gruppo) - 1)) {
   ind_min <- min(which(subC2$Gruppo == group))
   ind_max <- min(which(subC2$Gruppo == group + 1)) - 1
-
+  
   subC2$second[ind_min:ind_max] <- as.numeric(subC2$Timestamp[ind_min:ind_max]  - min(subC2$Timestamp[ind_min:ind_max] ), units = "secs")
 }
+
+
+#----------- Aggiungiamo una colonna con valori pari ad 1 in corrispondenza del primo valore di Voltaggio >25.25 V in ogni gruppo-------------
+
+# Inizializza la colonna Segnalazione a 0
+subC2$Segnalazione <- 0
+
+# Ciclo per ogni gruppo
+for (group in seq(0, max(subC2$Gruppo) - 1)) {
+  # Trova l'indice della prima corrispondenza nel gruppo specifico
+  indice_prima_corrispondenza <- which(subC2$HMI_VBatt_C2 > 25.25 & subC2$ID == -1 & subC2$Gruppo == group)[1]
+  
+  # Imposta a 1 solo l'elemento corrispondente nel gruppo
+  if (!is.na(indice_prima_corrispondenza)) {
+    subC2$Segnalazione[indice_prima_corrispondenza] <- 1
+  }
+}
+
+#----------------- creiamo i plot per visualizzare i gruppi relativi a ciascun POC--------------
+
+# Ciclo per ogni gruppo
+for (group in seq(0, max(subC2$Gruppo) - 1)) {
+  # Filtra il dataset per il gruppo specifico e applica le condizioni
+  subset_gruppo <- subC2[subC2$Gruppo == group & subC2$Speed != 0 & subC2$ID == -1 & subC2$POC_ID != 0, ]
+
+  # # Se il subset è non vuoto, crea il grafico
+  # if (nrow(subset_gruppo) > 0) {
+  #   # Trova gli indici di massimo e minimo nel gruppo
+  #   ind_max <- which.max(subset_gruppo$HMI_VBatt_C2)
+  #   ind_min <- which.min(subset_gruppo$HMI_VBatt_C2)
+    
+    # Crea il grafico utilizzando ggplot2
+   # ggplot(data = subset_gruppo) +
+    #  geom_line(mapping = aes(x = second, y = HMI_IBatt_C2)) +
+     # geom_hline(yintercept = 26.25, linetype = "dashed", color = "red") + 
+      #labs(title = paste("C2 Current evolution - Group - POC", group), x = "Elapsed Time (S)", y = "Ampere (I)")
+    
+ 
+ # }
+}
+
+
 
 # Plotto
 
@@ -71,11 +217,11 @@ ggplot(data = subC2[ind_min:ind_max,]) +
 
 
 
-#! Integrale grafico Ampere per calcolare (A/h)
+#! ---------------- Integrale grafico Ampere per calcolare (A/h) -----------------------
 
 #* Fase di scarica
 # Inizializza un vettore di capacità a zero per ciascun gruppo
-capacità <- rep(0, max(subC2$Gruppo))
+capacità_erogata <- rep(0, max(subC2$Gruppo))
 
 # Itera su ciascun gruppo
 for (group in seq(0, max(subC2$Gruppo) - 1)) {
@@ -88,7 +234,7 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   for (index in seq(ind_min, ind_max)) {
     # Aggiorna la capacità se l'ID è -1
     if (subC2$ID[index] == -1) {
-      capacità[group] <- capacità[group] + subC2$HMI_IBatt_C2[index]
+      capacità_erogata[group] <- capacità_erogata[group] + subC2$HMI_IBatt_C2[index]
     }
   }
   
@@ -96,16 +242,16 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   ind_min2 <- min(which(subC2$ID[ind_min:ind_max] == -1))
   ind_max2 <- max(which(subC2$ID[ind_min:ind_max] == -1))
   
-  # Calcola la capacità totale del gruppo
-  capacità[group] <- capacità[group] * (subC2$second[ind_max2] - subC2$second[ind_min2]) / 3600
+  # Calcola la capacità totale del gruppo in fase di scarica
+  capacità_erogata[group] <- capacità_erogata[group] * (subC2$second[ind_max2] - subC2$second[ind_min2]) / 3600
   
   # Stampa informazioni sul gruppo e sulla capacità
-  print(sprintf("\nSono nel gruppo %d", group))
-  print(sprintf('\nLa mia capacità è  %f', capacità[group]))
+  #print(sprintf("\nSono nel gruppo %d", group))
+  #print(sprintf('\nLa mia capacità è  %f', capacità_erogata[group]))
 }
 #* Fase di carica
 # Inizializza un vettore di capacità a zero per ciascun gruppo
-capacità2 <- rep(0, max(subC2$Gruppo))
+capacità_fornita <- rep(0, max(subC2$Gruppo))
 
 # Itera su ciascun gruppo
 for (group in seq(0, max(subC2$Gruppo) - 1)) {
@@ -118,7 +264,7 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   for (index in seq(ind_min, ind_max)) {
     # Aggiorna la capacità se l'ID è +1 e l'intensità è >= 26.25   
     if (subC2$ID[index] == 1 && subC2$HMI_IBatt_C2[index] >= 26.25) {
-      capacità2[group] <- capacità2[group] + subC2$HMI_IBatt_C2[index]
+      capacità_fornita[group] <- capacità_fornita[group] + subC2$HMI_IBatt_C2[index]
     }
   }
   
@@ -127,16 +273,68 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   ind_max2 <- max(which(subC2$ID == 1 & subC2$HMI_IBatt_C2 >= 26.25 & subC2$Gruppo == group))
   
   # Calcola la capacità totale del gruppo
-  capacità2[group] <- capacità2[group] * (subC2$second[ind_max2] - subC2$second[ind_min2]) / 3600
+  capacità_fornita[group] <- capacità_fornita[group] * (subC2$second[ind_max2] - subC2$second[ind_min2]) / 3600
   
   # Stampa informazioni sul gruppo e sulla capacità
-  print(sprintf("\nSono nel gruppo %d", group))
-  print(sprintf('\nLa mia capacità è  %f', capacità2[group]))
+ # print(sprintf("\nSono nel gruppo %d", group))
+  #print(sprintf('\nLa mia capacità è  %f', capacità2[group]))
 }
 
-capacità2[is.na(capacità2)] <- 0
+capacità_fornita[is.na(capacità_fornita)] <- 0
+
+# ---------------- Calcolo e  aggiunta colonna Ah (CONTROLLARE)--------------
+# Inizializza la colonna Ah
+subC2$Ah <- 0
+
+# Ciclo for sui gruppi
+for (group in seq(0, max(subC2$Gruppo) - 1)) {
+  
+  # Filtra il dataset per il gruppo specifico
+  subset_gruppo <- subC2[subC2$Gruppo == group, ]
+  
+  # Calcola la durata della fase in ore per la fase di scarica
+  ind_min2_scarica <- min(which(subC2$ID == -1 & subC2$Gruppo == group))
+  ind_max2_scarica <- max(which(subC2$ID == -1 & subC2$Gruppo == group))
+  durata_della_scarica <- (subC2$second[ind_max2_scarica] - subC2$second[ind_min2_scarica]) / 3600
+  
+  # Calcola la capacità_erogata
+  capacita_erogata <- sum(subset_gruppo$HMI_IBatt_C2) / durata_della_scarica
+  
+  # Aggiorna la colonna Ah per la fase di scarica
+  subC2$Ah[subC2$Gruppo == group & subC2$ID == -1] <- capacita_erogata
+  
+  # Calcola la durata della fase in ore per la fase di carica
+  ind_min2_carica <- min(which(subC2$ID == 1 & subC2$HMI_IBatt_C2 >= 26.25 & subC2$Gruppo == group))
+  ind_max2_carica <- max(which(subC2$ID == 1 & subC2$HMI_IBatt_C2 >= 26.25 & subC2$Gruppo == group))
+  durata_della_carica <- (subC2$second[ind_max2_carica] - subC2$second[ind_min2_carica]) / 3600
+  
+  # Aggiorna la colonna Ah per la fase di carica
+  subC2$Ah[subC2$Gruppo == group & subC2$ID == 1] <- capacita_erogata * durata_della_carica / 3600
+}
 
 
+# ---------------- Calcolo e  aggiunta colonna Wattora --------------
+# Inizializza una colonna per i Wattora
+subC2$Wattora <- 0
+
+# Ciclo per ogni gruppo
+for (group in seq(0, max(subC2$Gruppo) - 1)) {
+  # Filtra il dataset per il gruppo specifico
+  subset_gruppo <- subC2[subC2$Gruppo == group, ]
+  
+  # Calcola la durata della fase in ore
+  durata_fase <- (max(subset_gruppo$second) - min(subset_gruppo$second)) / 3600
+  
+  # Trova l'indice di massimo e di minimo nel gruppo
+  ind_max <- which.max(subset_gruppo$HMI_VBatt_C2)
+  ind_min <- which.min(subset_gruppo$HMI_VBatt_C2)
+  
+  # Calcola i Wattora per il gruppo
+  wattora_gruppo <- sum(subset_gruppo$HMI_IBatt_C2[ind_min:ind_max] * subset_gruppo$HMI_VBatt_C2[ind_min:ind_max]) * durata_fase
+  
+  # Assegna il risultato alla colonna Wattora
+  subC2$Wattora[subC2$Gruppo == group] <- wattora_gruppo
+}
 
 
 
