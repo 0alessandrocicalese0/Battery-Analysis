@@ -1,9 +1,9 @@
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
-load("my_workspace.RData")
+#load("my_workspace.RData")
 
-#*---------------- Leggiamo il Dataset e recuperiamo solo i dati del 2022------------------
+#! ---------------- Leggiamo il Dataset e recuperiamo solo i dati del 2022 ----------------
 
 data <- readRDS("tr_13.rds")
 data_POC_ID <- readRDS("tab_tr_13_POC_ID.rds") #colonna contenente i valori di ID per ogni POC
@@ -17,10 +17,17 @@ data  <-  data[format(data$Timestamp, "%Y") == "2022", ]
 # Rinomina la colonna relativa alla velocità
 names(data)[names(data) == "_VEHICLE_SPEED"] <- "Speed"
 
+
+#data_ridotto <- data[1:6247,]
+# Save data frame to an RDS file
+#saveRDS(data_ridotto, "battery_01-03.rds")
+
+
 # Visualizziamo la velocità per i primi 1000 dati
 ggplot(data = data[0:1000,]) +
   geom_line(mapping = aes(x = Timestamp, y = Speed))
-#-------------- Aggiungiamo la colonna mese e la colonna stagione --------------
+
+#! ---------------- Aggiungiamo la colonna mese e la colonna stagione --------------
 data <- data %>%
   mutate(mese = format(Timestamp, "%m"))
 
@@ -33,19 +40,19 @@ data <- data %>%
     TRUE ~ NA_character_
   ))
 
+data$Indice <- seq(1, dim(data)[1])
 
-#------------------------ Aggiungiamo le colonne ID per segnalare se ci troviamo in fase di carica o scarica per ciascuna batteria-----------------------------------
-data$ID_C2        <- ifelse(data$HMI_IBatt_C2 >= 0,   1,  -1)
-data$ID_C4        <- ifelse(data$HMI_IBatt_C4 >= 0,   1,  -1)
-data$ID_C5        <- ifelse(data$HMI_IBatt_C5 >= 0,   1,  -1)
-data$ID_C7        <- ifelse(data$HMI_IBatt_C7 >= 0,   1,  -1)
+#! ---------------- Aggiungiamo le colonne ID per segnalare se ci troviamo in fase di carica o scarica per ciascuna batteria-----------------------------------
+data$ID_C2  <- ifelse(data$HMI_IBatt_C2 >= 0,   1,  -1)
+data$ID_C4  <- ifelse(data$HMI_IBatt_C4 >= 0,   1,  -1)
+data$ID_C5  <- ifelse(data$HMI_IBatt_C5 >= 0,   1,  -1)
+data$ID_C7  <- ifelse(data$HMI_IBatt_C7 >= 0,   1,  -1)
 
 
 # Aggiungiamo una colonna di segnalazione quando non c'è concordanza tra le fasi di carica/scarica delle diverse batterie
 data$Diversi <- ifelse(rowSums(data[, c("ID_C2", "ID_C4", "ID_C5", "ID_C7")] != data$ID_C2) > 0, 1, 0)
 
-
-# -------------- Aggiungiamo la colonna Gruppo per ciascuna batteria --------------
+#! ---------------- Aggiungiamo la colonna Gruppo per ciascuna batteria --------------
 
 
 ##*C2
@@ -56,9 +63,9 @@ PeriodoC2         <- cumsum(c(0, diff(data$Timestamp) > 15))
 gruppo <- rep(0, length(data$Timestamp))
 
 for (index in 2:(length(data$Timestamp))) {
-  if (data$Derivata_C2[index] < 0 
-      && data$ID_C2[index]      !=  data$ID_C2[index-1] 
-      || PeriodoC2[index] !=  PeriodoC2[index-1]) {
+  if ((data$Derivata_C2[index] < 0 
+      && data$ID_C2[index] !=  data$ID_C2[index-1] )
+      || PeriodoC2[index]  !=  PeriodoC2[index-1] ) {
     gruppo[index] <-  1
   }
   else {
@@ -66,7 +73,7 @@ for (index in 2:(length(data$Timestamp))) {
   }
 }
 data$Gruppo_C2 <- cumsum(gruppo)
-data <- subset(data, select = -Derivata_C2)
+#data <- subset(data, select = -Derivata_C2)
 
 
 ##*C4
@@ -76,10 +83,11 @@ PeriodoC4        <- cumsum(c(0, diff(data$Timestamp) > 15))
 #* Contatore Gruppi
 gruppo <- rep(0, length(data$Timestamp))
 
+
 for (index in 2:(length(data$Timestamp))) {
-  if (data$Derivata_C4[index] < 0 
-      && data$ID_C4[index]      !=  data$ID_C4[index-1] 
-      || PeriodoC4[index] !=  PeriodoC4[index-1]) {
+  if ( (data$Derivata_C4[index] < 0 
+       && data$ID_C4[index] !=  data$ID_C4[index-1] )
+       || PeriodoC4[index]  !=  PeriodoC4[index-1]) {
     gruppo[index] <-  1
   }
   else {
@@ -87,7 +95,7 @@ for (index in 2:(length(data$Timestamp))) {
   }
 }
 data$Gruppo_C4 <- cumsum(gruppo)
-data <- subset(data, select = -Derivata_C4)
+#data <- subset(data, select = -Derivata_C4)
 
 
 ##*C5
@@ -98,9 +106,9 @@ PeriodoC5        <- cumsum(c(0, diff(data$Timestamp) > 15))
 gruppo <- rep(0, length(data$Timestamp))
 
 for (index in 2:(length(data$Timestamp))) {
-  if (data$Derivata_C5[index] < 0 
-      && data$ID_C5[index]      !=  data$ID_C5[index-1] 
-      || PeriodoC5[index] !=  PeriodoC5[index-1]) {
+  if ( ( data$Derivata_C5[index] < 0 
+      && data$ID_C5[index]  !=  data$ID_C5[index-1] )
+      || PeriodoC5[index]   !=  PeriodoC5[index-1]) {
     gruppo[index] <-  1
   }
   else {
@@ -108,7 +116,7 @@ for (index in 2:(length(data$Timestamp))) {
   }
 }
 data$Gruppo_C5 <- cumsum(gruppo)
-data <- subset(data, select = -Derivata_C5)
+#data <- subset(data, select = -Derivata_C5)
 
 
 ##*C7
@@ -119,8 +127,8 @@ PeriodoC7       <- cumsum(c(0, diff(data$Timestamp) > 15))
 gruppo <- rep(0, length(data$Timestamp))
 
 for (index in 2:(length(data$Timestamp))) {
-  if (data$Derivata_C7[index] < 0 
-      && data$ID_C7[index]      !=  data$ID_C7[index-1] 
+  if (( data$Derivata_C7[index] < 0 
+      && data$ID_C7[index]      !=  data$ID_C7[index-1] )
       || PeriodoC7[index] !=  PeriodoC7[index-1]) {
     gruppo[index] <-  1
   }
@@ -129,15 +137,41 @@ for (index in 2:(length(data$Timestamp))) {
   }
 }
 data$Gruppo_C7 <- cumsum(gruppo)
-data <- subset(data, select = -Derivata_C7)
+#data <- subset(data, select = -Derivata_C7)
+
 
 
 #Aggiungiamo una colonna per controllare se i gruppi sono gli stessi per tutte le batterie
 data$GruppiDiversi <- ifelse(rowSums(data[, c("Gruppo_C2", "Gruppo_C4", "Gruppo_C5", "Gruppo_C7")] != data$Gruppo_C2) > 0, 1, 0)
-# osserviamo che i gruppi sono diversi
+
+View(data)
+View(data[1000:2500,])
 
 
-#* ------------------- Focalizziamoci sulla Batteria C2 -----------------------------
+library(gridExtra)
+# Funzione per generare un singolo ggplot per un gruppo
+generate_plot <- function(group_data) {
+  ggplot(data = group_data, aes(x = Timestamp, y = HMI_IBatt_C2)) +
+    geom_line() +
+    geom_hline(yintercept = 26.25, linetype = "dashed", color = "red") + 
+    labs(title = paste("Group", unique(group_data$Gruppo)), x = "Time", y = "Ampere") +
+    theme_minimal()  # Personalizza il tema se necessario
+}
+
+# Lista per memorizzare i ggplot
+plot_list <- list()
+
+# Creazione di ggplot per ciascun gruppo
+for (group in gruppi_buoni[1:100]) {
+  group_data <- data[data$Gruppo == group, ]
+  plot_list[[length(plot_list) + 1]] <- generate_plot(group_data)
+}
+
+# Organizza i ggplot in una griglia
+grid.arrange(grobs = plot_list, ncol = 10)  # Modifica il numero di colonne se necessario
+
+
+#! ---------------- Focalizziamoci sulla Batteria C2 -----------------------------
 subC2 <- data[, c("Timestamp", "Speed", "HMI_IBatt_C2", "HMI_VBatt_C2","POC_ID")]
 
 # Colonne: ID - Derivata - Fase
@@ -173,7 +207,7 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
 }
 
 
-#----------- Aggiungiamo una colonna con valori pari ad 1 in corrispondenza del primo valore di Voltaggio >25.25 V in ogni gruppo-------------
+#! ---------------- Aggiungiamo una colonna con valori pari ad 1 in corrispondenza del primo valore di Voltaggio >25.25 V in ogni gruppo-------------
 
 # Inizializza la colonna Segnalazione a 0
 subC2$Segnalazione <- 0
@@ -189,13 +223,19 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   }
 }
 
-#----------------- creiamo i plot per visualizzare i gruppi relativi a ciascun POC--------------
+#! ---------------- Creiamo i plot per visualizzare i gruppi relativi a ciascun POC--------------
 
+gruppi_buoni <- unique(subC2$Gruppo[subC2$POC_ID = 0])
 # Ciclo per ogni gruppo
-for (group in seq(0, max(subC2$Gruppo) - 1)) {
+for (i in seq(1,  dim(data)[1])) {
   # Filtra il dataset per il gruppo specifico e applica le condizioni
-  subset_gruppo <- subC2[subC2$Gruppo == group & subC2$Speed != 0 & subC2$ID == -1 & subC2$POC_ID != 0, ]
-
+  
+  if (subC2$POC_ID[i] != 0){
+    print(subC2$Gruppo[i])
+    buoni <- subC2$Gruppo[i] 
+  }
+  gruppi_buoni <- subC2[subC2$Gruppo == group & subC2$Speed != 0 & subC2$ID == -1 & subC2$POC_ID != 0, ]
+  #print( subset_gruppo)
   # # Se il subset è non vuoto, crea il grafico
   # if (nrow(subset_gruppo) > 0) {
   #   # Trova gli indici di massimo e minimo nel gruppo
@@ -203,16 +243,14 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   #   ind_min <- which.min(subset_gruppo$HMI_VBatt_C2)
     
     # Crea il grafico utilizzando ggplot2
-   # ggplot(data = subset_gruppo) +
+    # ggplot(data = subset_gruppo) +
     #  geom_line(mapping = aes(x = second, y = HMI_IBatt_C2)) +
-     # geom_hline(yintercept = 26.25, linetype = "dashed", color = "red") + 
-      #labs(title = paste("C2 Current evolution - Group - POC", group), x = "Elapsed Time (S)", y = "Ampere (I)")
+    # geom_hline(yintercept = 26.25, linetype = "dashed", color = "red") + 
+    #labs(title = paste("C2 Current evolution - Group - POC", group), x = "Elapsed Time (S)", y = "Ampere (I)")
     
  
  # }
 }
-
-
 
 # Plotto
 
@@ -257,12 +295,17 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
   ind_max2 <- max(which(subC2$ID[ind_min:ind_max] == -1))
   
   # Calcola la capacità totale del gruppo in fase di scarica
-  capacità_erogata[group] <- capacità_erogata[group] * (subC2$second[ind_max2] - subC2$second[ind_min2]) / 3600
+  capacità_erogata[group] <- -capacità_erogata[group] * (subC2$second[ind_max2] - subC2$second[ind_min2]) / 3600
   
   # Stampa informazioni sul gruppo e sulla capacità
   #print(sprintf("\nSono nel gruppo %d", group))
   #print(sprintf('\nLa mia capacità è  %f', capacità_erogata[group]))
 }
+
+max_value <- max(capacità_erogata, na.rm = TRUE)
+print(max_value)
+
+
 #* Fase di carica
 # Inizializza un vettore di capacità a zero per ciascun gruppo
 capacità_fornita <- rep(0, max(subC2$Gruppo))
@@ -296,7 +339,7 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
 
 capacità_fornita[is.na(capacità_fornita)] <- 0
 
-# ---------------- Calcolo e  aggiunta colonna Ah (CONTROLLARE)--------------
+#! ---------------- Calcolo e  aggiunta colonna Ah (CONTROLLARE)--------------
 # Inizializza la colonna Ah
 subC2$Ah <- 0
 
@@ -327,7 +370,7 @@ for (group in seq(0, max(subC2$Gruppo) - 1)) {
 }
 
 
-# ---------------- Calcolo e  aggiunta colonna Wattora --------------
+#! ---------------- Calcolo e  aggiunta colonna Wattora --------------
 # Inizializza una colonna per i Wattora
 subC2$Wattora <- 0
 
@@ -370,3 +413,7 @@ ggsave("Voltaggio_per_gruppo.png", voltaggio)
 save.image(file = "my_workspace.RData")
 
 
+
+
+# Elimino
+data <- data[data$Diversi != 1, ]
