@@ -3,13 +3,19 @@ library(tidyverse)
 library(dplyr)
 library(ggplot2)
 
-#load("my_workspace_projects_clean.RData")
-save.image(file = "my_workspace_project_clean.RData")
+ #load("my_workspace_project_clean.RData")
+ #save.image(file = "my_workspace_project_clean.RData")
 
 data <- readRDS("battery_clean.rds")
+# Trova i gruppi in cui almeno una osservazione ha POC_ID != 0
+gruppi_con_POC <- unique(data$Gruppo[data$POC_ID != 0])
+
+# Crea il subset e chiamalo "gruppi_POC"
+data <- data[data$Gruppo %in% gruppi_con_POC, ]
+
 names(data)[names(data) == "Gruppo"] <- "Gruppi_vecchi"
 data$Gruppo <- dense_rank(data$Gruppi_vecchi)
-data <- subset(data, select = -Diversi) 
+data <- subset(data, select = -c(Diversi, Gruppi_vecchi))
 
 # Aggiungiamo la colonna degli indici e dei secondi per ogni gruppo
 
@@ -236,34 +242,12 @@ generate_plot_V <- function(group) {
     scale_color_manual(values = c("blue", "green", "orange", "purple"), name = "Battery") 
 }
 
-# Lista per memorizzare i ggplot
-plot_list <- list()
-
-# Creazione di ggplot per ciascun gruppo
-for (group in 1:20) {
-  plot_list[[length(plot_list) + 1]] <- generate_plot_I(group)
-}
-
-# Organizza i ggplot in una griglia
-grid.arrange(grobs = plot_list, ncol = 10)  # Modifica il numero di colonne se necessario
-
 
 #! ---------------- Creazione tabella per gruppi Wattora C2 -----------
-df_C2 <- data.frame(
-  Gruppo = integer(1519),    
-  I_iniziale = numeric(1519), 
-  I_media = numeric(1519),    
-  I_finale = numeric(1519),    
-  V_iniziale = numeric(1519), 
-  V_media = numeric(1519),   
-  V_finale = numeric(1519),
-  Durata_scarica = numeric(1519),
-  Wattora = numeric(1519),
-  Stagione = character(1519),
-  #POC_ID = integer(1519)
-)
+    
 
-#Riempiamo iterativamente il nuovo dataset
+#Riempiamo  il nuovo dataset
+df_C2 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
 
 #Gruppo
 df_C2$Gruppo <- unique(data$Gruppo)
@@ -283,7 +267,6 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   
   # Durata scarica
   df_C2$Durata_scarica[group] <- subset_gruppo$Durata_scarica[1]
-  
   # Stagione
   df_C2$Stagione[group] <- subset_gruppo$stagione[1]
   
@@ -292,13 +275,67 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   
 }
 
-#! ---------------- Creazione tabella per gruppi Amperora C2 ----------
-df_C2_Ah <- df_C2
-df_C2_Ah <- subset(df_C2_Ah, select = -Wattora)
-df_C2_Ah$Amperora <- 0
+df_C2$Amperora <- 0
 
 for (group in seq(1, max(data$Gruppo) - 1)) {
   subset_gruppo <- data[data$Gruppo == group, ]
   # Amperora
-  df_C2_Ah$Amperora[group] <- subset_gruppo$Ah_C2[1]
+  df_C2$Amperora[group] <- subset_gruppo$Ah_C2[1]
 }  
+
+
+#! ---------------- PCA e Clustering -----------
+
+library(stats)
+library(corrplot)
+ corr_matrix <- df_C2 %>% 
+   dplyr::select(where(is.numeric)) %>% 
+   as.matrix() %>%
+   cor()
+ 
+ 
+ corrplot(corr_matrix) 
+
+ 
+ df_C2 <- df_C2 %>% 
+      mutate(Stagione = case_when(
+        Stagione == "inverno" ~ 0,
+        Stagione == "estate" ~ 1,
+        Stagione == "primavera/autunno" ~ 2,
+      ))
+ 
+      
+ 
+ # my_matrix <- df_C2 %>% 
+ #   mutate(Stagione = case_when(
+ #     Stagione == "inverno" ~ 0,
+ #     Stagione == "estate" ~ 1,
+ #     Stagione == "primavera/autunno" ~ 2,
+ #   ))  %>% 
+ #   mutate(POC_ID = case_when(
+ #     grepl("1", POC_ID) ~ 1,
+ #     grepl("2", POC_ID) ~ 2,
+ #     grepl("3", POC_ID) ~ 3,
+ #     grepl("4", POC_ID) ~ 4,
+ #     grepl("5", POC_ID) ~ 5,
+ #     grepl("6", POC_ID) ~ 6,
+ #     grepl("7", POC_ID) ~ 7,
+ #     grepl("8", POC_ID) ~ 8,
+ #     TRUE ~ as.numeric(POC_ID)  # Mantieni i valori originali se non corrispondono a nessuno dei casi sopra
+ #   ))
+ 
+
+pr.out <- prcomp(subset(df_C2, select = -Gruppo), scale = TRUE)
+pr.out$rotation[,1]
+
+names(pr.out)
+varianza_spiegata <-sum(pr.out$sdev[1:4]^2) / sum(pr.out$sdev^2)  # 90% di varianza spiegata
+
+library(GGally)
+df_C2_scaled <- as.data.frame(scale(df_C2))  # Scale the data frame
+ggpairs(df_C2_scaled)
+
+# df_C2[df_C2$Wattora>700,]
+# sum(df_C2$Wattora>700)
+# 
+# # PCA e Clustering solo ai gruppi riferiti ai POC

@@ -28,17 +28,15 @@ data$ID_C7  <- ifelse(data$HMI_IBatt_C7 >= 0,   1,  -1)
 
 data$Diversi <- ifelse(rowSums(data[, c("ID_C2", "ID_C4", "ID_C5", "ID_C7")] != data$ID_C2) > 0, 1, 0)
 
-indices_da_copiare <- which(data$Diversi == 1)
-for (indice in indices_da_copiare) {
-  data[indice, -1] <- data[(indice - 1), -1]
-}
+data <- data[data$Diversi != 1, ]
+
 sum(data$Diversi)
 
 #! ------------------- Aggiungiamo la colonna Gruppo per ciascuna batteria -------------------
 
 #*C2
 data$Derivata_C2  <- c(0, as.numeric(diff(data$HMI_IBatt_C2)) / as.numeric(diff(data$Timestamp)))
-PeriodoC2         <- cumsum(c(0, diff(data$Timestamp) > 15))
+PeriodoC2         <- cumsum(c(0, diff(data$Timestamp) > 22))
 
 # Contatore Gruppi
 gruppo <- rep(0, length(data$Timestamp))
@@ -136,5 +134,7 @@ gruppi_buoni <- which (gruppo_buono == 1)
 
 data_new <- data[data$Gruppo %in% gruppi_buoni, ]
 
+
 # Save data frame to an RDS file
 saveRDS(data_new, "battery_clean.rds")
+
