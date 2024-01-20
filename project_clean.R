@@ -334,6 +334,24 @@ varianza_spiegata <-sum(pr.out$sdev[1:4]^2) / sum(pr.out$sdev^2)  # 90% di varia
 library(GGally)
 df_C2_scaled <- as.data.frame(scale(df_C2))  # Scale the data frame
 ggpairs(df_C2_scaled)
+plot(pr.out)
+
+par(mfrow=c(1,2)) #for a graph panel
+fvs <- pr.out$sdev^2/sum(pr.out$sdev^2) 
+plot(
+  fvs,
+  xlab = " PC ",
+  ylab = " Fraction of variance explained",
+  main= "scree plot",
+  ylim = c(0, 1) ,
+  type = 'b') #scree plot
+
+plot(
+  cumsum(fvs) ,
+  xlab = " PC ",
+  ylab = " Cumulative fraction of variance explained", 
+  ylim = c(0, 1) ,
+  type = 'b')
 
 # df_C2[df_C2$Wattora>700,]
 # sum(df_C2$Wattora>700)
