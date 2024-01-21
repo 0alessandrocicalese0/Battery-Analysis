@@ -37,7 +37,7 @@ corr_matrix <- df_C2 %>%
   cor()
 
 corrplot(corr_matrix) 
-boxplot(df_C2_scaled$Durata_scarica, df_C2_scaled$Wattora)
+boxplot(df_C2$Durata_scarica, df_C2$Wattora)
 
 boxplot(Wattora ~ POC, data = df_C2, 
         xlab = "POC", ylab = "Durata_scarica", 
