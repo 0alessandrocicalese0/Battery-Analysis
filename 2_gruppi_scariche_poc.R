@@ -5,7 +5,7 @@ library(ggplot2)
 
  
 #load("my_workspace_project_clean.RData")
- #save.image(file = "my_workspace_project_clean.RData")
+#save.image(file = "my_workspace_project_clean.RData")
 
 data <- readRDS("battery_clean.rds")
 
@@ -286,6 +286,20 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
 # Elimina le righe di df_C2 in cui POC è NA
 df_C2 <- na.omit(df_C2)
 
-saveRDS(df_C2, "df_C2.rds")
+# Creare un vettore per ciascun POC
+gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "POC_1"]
+gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "POC_2"]
+gruppi_POC_3 <- df_C2$Gruppo[df_C2$POC == "POC_3"]
+gruppi_POC_4 <- df_C2$Gruppo[df_C2$POC == "POC_4"]
+gruppi_POC_5 <- df_C2$Gruppo[df_C2$POC == "POC_5"]
+gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "POC_6"]
+gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "POC_7"]
+gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
+
+#Generiamo i plot relativi al solo POC_3
+plot_list <- lapply(gruppi_POC_3[1:25], function(gr) generate_plot_I(gr))
+grid.arrange(grobs = plot_list, ncol = 5)  
+
+#saveRDS(df_C2, "df_C2.rds")
 
 
