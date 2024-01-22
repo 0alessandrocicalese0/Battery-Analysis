@@ -4,7 +4,7 @@ library(dplyr)
 library(ggplot2)
 
  
-load("my_workspace_project_clean.RData")
+#load("my_workspace_project_clean.RData")
 #save.image(file = "my_workspace_project_clean.RData")
 
 data <- readRDS("battery_clean.rds")
@@ -214,6 +214,12 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   data$Wattora_C7[data$Gruppo == group] <- wattora_gruppo
 }
 
+#! ---------------- Calcolo e  aggiunta colonna Potenza --------------
+data$Potenza_C2 <- data$HMI_IBatt_C2 * data$HMI_VBatt_C2
+data$Potenza_C4 <- data$HMI_IBatt_C4 * data$HMI_VBatt_C4
+data$Potenza_C5 <- data$HMI_IBatt_C5 * data$HMI_VBatt_C5
+data$Potenza_C7 <- data$HMI_IBatt_C7 * data$HMI_VBatt_C7
+
 #! ---------------- Funzioni per generare plot ------------------- 
 library(gridExtra)
 
@@ -221,12 +227,12 @@ generate_plot_I <- function(group) {
   group_data <- data[data$Gruppo == group, ]
   
   ggplot(data = group_data, aes(x = second)) +
-    geom_line(aes(y = HMI_IBatt_C2, color = "C2"), linetype = "solid", linewidth=1) +
-    geom_line(aes(y = HMI_IBatt_C4, color = "C4"), linetype = "solid", linewidth=1) +
-    geom_line(aes(y = HMI_IBatt_C5, color = "C5"), linetype = "solid", linewidth=1) +
-    geom_line(aes(y = HMI_IBatt_C7, color = "C7"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_IBatt_C2, color = "1"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_IBatt_C4, color = "2"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_IBatt_C5, color = "3"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_IBatt_C7, color = "4"), linetype = "solid", linewidth=1) +
     geom_hline(yintercept = 26.25, linetype = "dashed", color = "red") +
-    labs(title = paste("Group", group), x = "Time (s)", y = "Ampere") +
+    labs(title = paste("Observation", group), x = "Time (s)", y = "Intensity (A)") +
     scale_color_manual(values = c("blue", "green", "orange", "purple"), name = "Battery")
 }
 
@@ -234,19 +240,28 @@ generate_plot_V <- function(group) {
   group_data <- data[data$Gruppo == group, ]     
   
   ggplot(data = group_data, aes(x = second)) +
-    geom_line(aes(y = HMI_VBatt_C2, color = "C2"), linetype = "solid", linewidth=1) +
-    geom_line(aes(y = HMI_VBatt_C4, color = "C4"), linetype = "solid", linewidth=1) +
-    geom_line(aes(y = HMI_VBatt_C5, color = "C5"), linetype = "solid", linewidth=1) +
-    geom_line(aes(y = HMI_VBatt_C7, color = "C7"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_VBatt_C2, color = "1"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_VBatt_C4, color = "2"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_VBatt_C5, color = "3"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = HMI_VBatt_C7, color = "4"), linetype = "solid", linewidth=1) +
     geom_hline(yintercept = 25.25, linetype = "dashed", color = "red") +
-    labs(title = paste("Group", group), x = "Time(s)", y = "Voltage") +
+    labs(title = paste("Observation", group), x = "Time(s)", y = "Voltage (V)") +
     scale_color_manual(values = c("blue", "green", "orange", "purple"), name = "Battery") 
 }
 
-
-#! ---------------- Creazione tabella per gruppi Wattora C2 -----------
-    
-
+generate_plot_P <- function(group) { 
+  group_data <- data[data$Gruppo == group, ]     
+  
+  ggplot(data = group_data, aes(x = second)) +
+    geom_line(aes(y = Potenza_C2, color = "1"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = Potenza_C4, color = "2"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = Potenza_C5, color = "3"), linetype = "solid", linewidth=1) +
+    geom_line(aes(y = Potenza_C7, color = "4"), linetype = "solid", linewidth=1) +
+    #geom_hline(yintercept = 25.25, linetype = "dashed", color = "red") +
+    labs(title = paste("Observation", group), x = "Time(s)", y = "Power (W)") +
+    scale_color_manual(values = c("blue", "green", "orange", "purple"), name = "Battery") 
+}
+#! ---------------- Creazione tabella per gruppi C2 -----------
 #Riempiamo  il nuovo dataset
 df_C2 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
 
@@ -269,6 +284,9 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   # Durata scarica
   df_C2$Durata_scarica[group] <- subset_gruppo$Durata_scarica[1]
   
+  # Mese
+  df_C2$Mese[group] <- subset_gruppo$mese[1]
+  
   # Stagione
   df_C2$Stagione[group] <- subset_gruppo$stagione[1]
   
@@ -286,6 +304,139 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
 # Elimina le righe di df_C2 in cui POC è NA
 df_C2 <- na.omit(df_C2)
 
+#! ---------------- Creazione tabella per gruppi C4 -----------
+# Riempiamo il nuovo dataset
+df_C4 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
+
+# Gruppo
+df_C4$Gruppo <- unique(data$Gruppo)
+
+for (group in seq(1, max(data$Gruppo) - 1)) {
+  subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C4 < 0, ]
+  
+  # I iniziale finale e media
+  df_C4$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0], 1)
+  df_C4$I_iniziale[group] <- head(subset_gruppo$HMI_IBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0], 1)
+  df_C4$I_media[group] <- mean(subset_gruppo$HMI_IBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0])
+  
+  # V iniziale finale e media
+  df_C4$V_finale[group] <- tail(subset_gruppo$HMI_VBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0], 1)
+  df_C4$V_iniziale[group] <- head(subset_gruppo$HMI_VBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0], 1)
+  df_C4$V_media[group] <- mean(subset_gruppo$HMI_VBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0])
+  
+  # Durata scarica
+  df_C4$Durata_scarica[group] <- subset_gruppo$Durata_scarica[1]
+  
+  # Mese
+  df_C4$Mese[group] <- subset_gruppo$mese[1]
+  
+  # Stagione
+  df_C4$Stagione[group] <- subset_gruppo$stagione[1]
+  
+  # Wattora
+  df_C4$Wattora[group] <- subset_gruppo$Wattora_C4[1]
+  
+  # Amperora
+  df_C4$Amperora[group] <- subset_gruppo$Ah_C4[1]
+  
+  # POC
+  df_C4$POC[group] <- subset_gruppo$POC_ID[subset_gruppo$POC_ID != 0 & subset_gruppo$HMI_IBatt_C4 < 0][1]
+  
+}
+
+# Elimina le righe di df_C4 in cui POC è NA
+df_C4 <- na.omit(df_C4)
+
+
+#! ---------------- Creazione tabella per gruppi C5 -----------
+# Riempiamo il nuovo dataset
+df_C5 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
+
+# Gruppo
+df_C5$Gruppo <- unique(data$Gruppo)
+
+for (group in seq(1, max(data$Gruppo) - 1)) {
+  subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C5 < 0, ]
+  
+  # I iniziale finale e media
+  df_C5$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0], 1)
+  df_C5$I_iniziale[group] <- head(subset_gruppo$HMI_IBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0], 1)
+  df_C5$I_media[group] <- mean(subset_gruppo$HMI_IBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0])
+  
+  # V iniziale finale e media
+  df_C5$V_finale[group] <- tail(subset_gruppo$HMI_VBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0], 1)
+  df_C5$V_iniziale[group] <- head(subset_gruppo$HMI_VBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0], 1)
+  df_C5$V_media[group] <- mean(subset_gruppo$HMI_VBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0])
+  
+  # Durata scarica
+  df_C5$Durata_scarica[group] <- subset_gruppo$Durata_scarica[1]
+  
+  # Mese
+  df_C5$Mese[group] <- subset_gruppo$mese[1]
+  
+  # Stagione
+  df_C5$Stagione[group] <- subset_gruppo$stagione[1]
+  
+  # Wattora
+  df_C5$Wattora[group] <- subset_gruppo$Wattora_C5[1]
+  
+  # Amperora
+  df_C5$Amperora[group] <- subset_gruppo$Ah_C5[1]
+  
+  # POC
+  df_C5$POC[group] <- subset_gruppo$POC_ID[subset_gruppo$POC_ID != 0 & subset_gruppo$HMI_IBatt_C5 < 0][1]
+  
+}
+
+# Elimina le righe di df_C5 in cui POC è NA
+df_C5 <- na.omit(df_C5)
+
+#! ---------------- Creazione tabella per gruppi C7 -----------
+# Riempiamo il nuovo dataset
+df_C7 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
+
+# Gruppo
+df_C7$Gruppo <- unique(data$Gruppo)
+
+for (group in seq(1, max(data$Gruppo) - 1)) {
+  subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C7 < 0, ]
+  
+  # I iniziale finale e media
+  df_C7$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0], 1)
+  df_C7$I_iniziale[group] <- head(subset_gruppo$HMI_IBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0], 1)
+  df_C7$I_media[group] <- mean(subset_gruppo$HMI_IBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0])
+  
+  # V iniziale finale e media
+  df_C7$V_finale[group] <- tail(subset_gruppo$HMI_VBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0], 1)
+  df_C7$V_iniziale[group] <- head(subset_gruppo$HMI_VBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0], 1)
+  df_C7$V_media[group] <- mean(subset_gruppo$HMI_VBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0])
+  
+  # Durata scarica
+  df_C7$Durata_scarica[group] <- subset_gruppo$Durata_scarica[1]
+  
+  # Mese
+  df_C7$Mese[group] <- subset_gruppo$mese[1]
+  
+  # Stagione
+  df_C7$Stagione[group] <- subset_gruppo$stagione[1]
+  
+  # Wattora
+  df_C7$Wattora[group] <- subset_gruppo$Wattora_C7[1]
+  
+  # Amperora
+  df_C7$Amperora[group] <- subset_gruppo$Ah_C7[1]
+  
+  # POC
+  df_C7$POC[group] <- subset_gruppo$POC_ID[subset_gruppo$POC_ID != 0 & subset_gruppo$HMI_IBatt_C7 < 0][1]
+  
+}
+
+# Elimina le righe di df_C7 in cui POC è NA
+df_C7 <- na.omit(df_C7)
+
+
+#! ---------------- Divisione dei gruppi rispetto ai POC ----------------
+
 # Creare un vettore per ciascun POC
 gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "POC_1"]
 gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "POC_2"]
@@ -296,9 +447,9 @@ gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "POC_6"]
 gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "POC_7"]
 gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
 
-#Generiamo i plot relativi al solo POC_3
-plot_list <- lapply(gruppi_POC_3[1:25], function(gr) generate_plot_I(gr))
-grid.arrange(grobs = plot_list, ncol = 5)  
+#Generiamo i plot relativi al solo POC_4
+plot_list <- lapply(gruppi_POC_7[1:5], function(gr) generate_plot_V(gr))
+grid.arrange(grobs = plot_list, ncol = 5, top = "POC_7")  
 
 #saveRDS(df_C2, "df_C2.rds")
 

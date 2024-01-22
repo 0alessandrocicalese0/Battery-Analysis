@@ -4,12 +4,29 @@ library(dplyr)
 library(ggplot2)
 library(stats)
 library(corrplot)
+library(reshape2)
 
-load("my_workspace_stat.RData")
+#load("my_workspace_stat.RData")
 #save.image(file = "my_workspace_stat.RData")
 
 df_C2 <- readRDS("df_C2.rds")
+df_C4 <- readRDS("df_C4.rds")
+df_C5 <- readRDS("df_C5.rds")
+df_C7 <- readRDS("df_C7.rds")
 
+#! ---------------- Divisione dei gruppi rispetto ai POC ----------------
+
+# Creare un vettore per ciascun POC
+gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "POC_1"]
+gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "POC_2"]
+gruppi_POC_3 <- df_C2$Gruppo[df_C2$POC == "POC_3"]
+gruppi_POC_4 <- df_C2$Gruppo[df_C2$POC == "POC_4"]
+gruppi_POC_5 <- df_C2$Gruppo[df_C2$POC == "POC_5"]
+gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "POC_6"]
+gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "POC_7"]
+gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
+
+# Convertiamo in variabili numeriche quelle categoriche
 df_C2 <- df_C2 %>% 
   mutate(Stagione = case_when(
     Stagione == "inverno" ~ 0,
@@ -30,50 +47,82 @@ df_C2 <- df_C2 %>%
         TRUE ~ as.numeric(POC)  # Mantieni i valori originali se non corrispondono a nessuno dei casi sopra
       ))
 
-#! ---------------- PCA e Clustering -----------
+#! ----------------corr_matrix -------------
 corr_matrix <- df_C2 %>% 
-  dplyr::select(where(is.numeric)) %>% 
+  dplyr::select(where(is.numeric)) %>%  
+  select(-Gruppo, -Amperora, -Wattora, -POC, -Stagione)%>%
   as.matrix() %>%
   cor()
 
-corrplot(corr_matrix) 
-boxplot(df_C2$Durata_scarica, df_C2$Wattora)
+corrplot(corr_matrix)
 
-boxplot(Wattora ~ POC, data = df_C2, 
-        xlab = "POC", ylab = "Durata_scarica", 
-        main = "Boxplot di Durata_scarica in base a Wattora")
+#!---------------boxplot--------------
 
 # Calcola la media e la deviazione standard di Wattora
 mean_wattora <- mean(df_C2$Wattora)
 sd_wattora <- sd(df_C2$Wattora)
 
-outlier_limit <- 700
+outlier_limit <- 1000
 # Identifica gli outlier
 outliers <- df_C2$Wattora > outlier_limit | df_C2$Wattora < -outlier_limit
 
 # Stampa il numero di outlier
 cat("Numero di outlier:", sum(outliers), "\n")
 
-# Visualizza un boxplot prima dell'eliminazione degli outlier
-boxplot(df_C2$Wattora, main = "Boxplot di Wattora (prima dell'eliminazione)")
+
+# Visualizza un boxplot con colori diversi
+boxplot(Wattora ~ POC, data = df_C2, 
+        main = "Boxplot Wattora Stratified by POC (before removing outliers)",
+        xlab = "POC",
+        col = rainbow(length(unique(df_C2$POC))))
+grid()
 
 # Elimina gli outlier dal dataframe
 df_C2 <- df_C2[!outliers, ]
 
 # Visualizza un boxplot dopo l'eliminazione degli outlier
-boxplot(df_C2$Wattora, main = "Boxplot di Wattora (dopo l'eliminazione)")
+boxplot(Wattora ~ POC, data = df_C2, 
+        main = "Boxplot Wattora Stratified by POC (after removing the outliers)",
+        xlab = "POC",
+        col = rainbow(length(unique(df_C2$POC))))
+grid()
 
 
-#* PCA
-pr.out <- prcomp(subset(df_C2, select = -Gruppo), scale = TRUE)
+
+#! ---------------- PCA e Clustering -----------
+ 
+# Rendiamo stagione e poc  variabili di tipo categorico usando "factor"
+PCA_strati_POC <- function(poc) {
+  dati <- df_C2[df_C2$POC == poc,]
+  dati <- subset(dati, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora))
+  
+  pr.out <- prcomp(dati)#, scale = TRUE)
+  biplot(pr.out,
+         scale = 1,
+         cex = 0.9,
+         col = c(alpha(1, 0), "red")
+  )
+}
+
+
+
+df_C2$POC <- as.factor(df_C2$POC)
+df_C2$Stagione <- as.factor(df_C2$Stagione)
+
+str(df_C2)
+
+
+
+pr.out <- prcomp(subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora)), scale = TRUE)
+
 pr.out$rotation[,1]
 
 names(pr.out)
 varianza_spiegata <-sum(pr.out$sdev[1:4]^2) / sum(pr.out$sdev^2)  # 90% di varianza spiegata
 
 library(GGally)
-df_C2_scaled <- as.data.frame(scale(df_C2))  # Scale the data frame
-ggpairs(df_C2_scaled)
+#df_C2_scaled <- as.data.frame(scale(df_C2))  # Scale the data frame
+ggpairs(subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora)))
 plot(pr.out)
 
 par(mfrow=c(1,2)) #for a graph panel
@@ -97,13 +146,13 @@ par(mfrow=c(1,1)) #for a graph panel
 biplot(pr.out, scale = 0)
  
 biplot( pr.out,
-scale = 0,
-cex = .6,
+scale = 1,
+cex = .9,
 col=c(alpha(1,0), "red")
 )
 abline(h = 0, v = 0, lty = 2)
 
-#* Clustering
+#! ---------- Clustering ------------ 
 set.seed(1)
 
 km.out <- kmeans(df_C2_scaled, 8, nstart = 20) 

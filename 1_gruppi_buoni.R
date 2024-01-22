@@ -60,7 +60,7 @@ data <- subset(data, select = -Derivata_C2)
 
 #*C4
 data$Derivata_C4  <- c(0, as.numeric(diff(data$HMI_IBatt_C4)) / as.numeric(diff(data$Timestamp)))
-PeriodoC4         <- cumsum(c(0, diff(data$Timestamp) > 15))
+PeriodoC4         <- cumsum(c(0, diff(data$Timestamp) > 22))
 
 # Contatore Gruppi
 gruppo <- rep(0, length(data$Timestamp))
@@ -80,7 +80,7 @@ data <- subset(data, select = -Derivata_C4)
 
 #*C5
 data$Derivata_C5  <- c(0, as.numeric(diff(data$HMI_IBatt_C5)) / as.numeric(diff(data$Timestamp)))
-PeriodoC5         <- cumsum(c(0, diff(data$Timestamp) > 15))
+PeriodoC5         <- cumsum(c(0, diff(data$Timestamp) > 22))
 
 # Contatore Gruppi
 gruppo <- rep(0, length(data$Timestamp))
@@ -100,7 +100,7 @@ data <- subset(data, select = -Derivata_C5)
 
 #*C7
 data$Derivata_C7  <- c(0, as.numeric(diff(data$HMI_IBatt_C7)) / as.numeric(diff(data$Timestamp)))
-PeriodoC7         <- cumsum(c(0, diff(data$Timestamp) > 15))
+PeriodoC7         <- cumsum(c(0, diff(data$Timestamp) > 22))
 
 # Contatore Gruppi
 gruppo <- rep(0, length(data$Timestamp))
