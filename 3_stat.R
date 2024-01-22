@@ -154,8 +154,39 @@ abline(h = 0, v = 0, lty = 2)
 
 #! ---------- Clustering ------------ 
 set.seed(1)
+par(mfrow=c(1,2))
+library(cluster)
+k_seq <- 2:10 
+silhouette_vec <- numeric(length(k_seq)) 
+for (kk in seq_along(k_seq)) {
+  ii <- k_seq[kk]
+  X <- subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora))
+  km_out <- kmeans(X, centers = ii, nstart = 100) 
+  cluster_kk <- km_out$cluster
+  sil <- silhouette(cluster_kk, dist = dist(X)) 
+  silhouette_vec[kk] <- summary(sil)$avg.width
+}
+plot(k_seq, silhouette_vec, type = "l", xlab = "K", ylab = "Silhouette (average)", main = "Cluster with POC 1-8") 
+points(k_seq[which.max(silhouette_vec)], max(silhouette_vec), col = "red", pch = 16)
+grid()
 
-km.out <- kmeans(df_C2_scaled, 8, nstart = 20) 
+
+k_seq <- 2:10 
+silhouette_vec <- numeric(length(k_seq)) 
+for (kk in seq_along(k_seq)) {
+  ii <- k_seq[kk]
+  X <- subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora))
+  X <- X[df_C2$POC %in% c(7,8), ]
+  km_out <- kmeans(X, centers = ii, nstart = 100) 
+  cluster_kk <- km_out$cluster
+  sil <- silhouette(cluster_kk, dist = dist(X)) 
+  silhouette_vec[kk] <- summary(sil)$avg.width
+}
+plot(k_seq, silhouette_vec, type = "l", xlab = "K", ylab = "Silhouette (average)", main = "Cluster with POC 7-8") 
+points(k_seq[which.max(silhouette_vec)], max(silhouette_vec), col = "red", pch = 16)
+grid()
+
+km.out <- kmeans(X, 3, nstart = 20) 
 km.out$tot.withinss
 names(km.out)
 km.out$cluster
