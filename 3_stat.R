@@ -115,11 +115,23 @@ par(mfrow=c(2,1)) #for a graph panel
 plot( factor(km.out$cluster))
 plot( df_C2$POC)
 
+#kmeans sugli score delle prime due PCs
+km.out.scores <- kmeans (scores_PC1_2,2, nstart =50)
+valori$clusters.k.means.PCA <- km.out.scores$cluster
+sum(valori$clusters!=valori$clusters.k.means.PCA)
+
+par(pty="s")
+plot(PC2 ~ PC1, data = scores_PC1_2, type = "n", col=clusters(m2), ylim=c(-6,4))
+etich = abbreviate(1:valori$ID, minlength = 2)
+text(scores_PC1_2$PC1, scores_PC1_2$PC2, labels = etich, col=valori$clusters.k.means.PCA)
+abline(parameters(m2)[1:2, 1],lty=3)
+abline(parameters(m2)[1:2, 2],lty=3)
+abline(h = 0, v = 0,lty=2)
 
 
 #* Regressione sugli Amperora
 names(df_C2)
-lm.fit <- lm( Amperora ~ . - Gruppo , data = df_C2)
+lm.fit <- lm( Amperora ~ . - Gruppo, data = df_C2)
 
 library(car)
 vif(lm.fit)
@@ -128,3 +140,7 @@ library(leaps)
 regfit.full <- regsubsets(Amperora ~ . - Gruppo , data = df_C2) 
 reg.summary <- summary(regfit.full)
 reg.summary$outmat
+
+# regressione: volt in carica(regressore) e ampere in carica(risposta)
+# prendiamo il residuo stratificato per poc, lo utilizzo come variabile aggiuntiva
+# analizzare fase carica col residuo(1, non stratificato per poc; 2, stratificato per poc, 3 non stratificato per poc utilizzando solo 7 e 8)
