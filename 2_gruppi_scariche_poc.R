@@ -4,7 +4,7 @@ library(dplyr)
 library(ggplot2)
 
  
-#load("my_workspace_project_clean.RData")
+#load("workspace/my_workspace_project_clean.RData")
 #save.image(file = "my_workspace_project_clean.RData")
 
 data <- readRDS("battery_clean.rds")
@@ -264,12 +264,16 @@ generate_plot_P <- function(group) {
 #! ---------------- Creazione tabella per gruppi C2 -----------
 #Riempiamo  il nuovo dataset
 df_C2 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
-
+df_C2$Timestamp_iniziale <- character()
 #Gruppo
 df_C2$Gruppo <- unique(data$Gruppo)
+#Timestamp_iniziale <- rep(0, length(unique(data$Gruppo)))
 
 for (group in seq(1, max(data$Gruppo) - 1)) {
   subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C2 < 0, ]
+  
+  # Timestamp iniziale
+  df_C2$Timestamp_iniziale[group] <- as.character(subset_gruppo$Timestamp[1])
   
   #I iniziale finale e media
   df_C2$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C2[subset_gruppo$HMI_IBatt_C2 < 0], 1)
@@ -301,8 +305,18 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   
 }  
 
+df_C2$Timestamp_iniziale <- as.POSIXct(df_C2$Timestamp_iniziale)
 # Elimina le righe di df_C2 in cui POC è NA
 df_C2 <- na.omit(df_C2)
+
+plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, type = "line", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot")
+
+
+plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, pch = 16, col = "blue", cex = .5,
+     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot ")
+
+df_C2 <- subset(df_C2, select = -Timestamp_iniziale)
+
 
 #! ---------------- Creazione tabella per gruppi C4 -----------
 # Riempiamo il nuovo dataset
