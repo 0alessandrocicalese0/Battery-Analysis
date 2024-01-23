@@ -1,9 +1,10 @@
 #! ---------------- Leggiamo il Dataset ------------------- 
+
 library(tidyverse)
 library(dplyr)
 library(ggplot2)
 
- 
+
 load("workspace/my_workspace_project_clean.RData")
 #save.image(file = "workspace/my_workspace_project_clean.RData")
 
@@ -30,7 +31,7 @@ data <- data %>%
   ungroup() %>%
   select(Timestamp, second, everything())
 
-#! ---------------- Segnalazione primo valore con Voltaggio > 25.25 V in ogni gruppo --------------
+#! ---------------- Segnalazione primo valore con Voltaggio > 25.5 V in ogni gruppo --------------
  
 # Inizializza la colonna Segnalazione a 0
 data$Segnalazione <- 0
@@ -38,7 +39,7 @@ data$Segnalazione <- 0
 # Ciclo per ogni gruppo
 for (group in seq(1, max(data$Gruppo) - 1)) {
   # Trova l'indice della prima corrispondenza nel gruppo specifico
-  indice_prima_corrispondenza <- which(data$HMI_VBatt_C2 > 25.25 & data$Gruppo == group)[1]
+  indice_prima_corrispondenza <- which(data$HMI_VBatt_C2 > 25.5 & data$Gruppo == group)[1]
   data$Segnalazione[indice_prima_corrispondenza] <- 1
 }
 
@@ -49,9 +50,9 @@ data <- data %>%
  
 data <- data %>%
   mutate(stagione = case_when(
-    between(as.numeric(mese), 3, 4) | between(as.numeric(mese), 9, 10) ~ "primavera/autunno",
-    between(as.numeric(mese), 5, 8) ~ "estate",
-    between(as.numeric(mese), 11, 12) | between(as.numeric(mese), 1, 2) ~ "inverno",
+    between(as.numeric(mese), 4, 5) | between(as.numeric(mese), 10, 10) ~ "primavera/autunno",
+    between(as.numeric(mese), 6, 9) ~ "estate",
+    between(as.numeric(mese), 11, 12) | between(as.numeric(mese), 1, 3) ~ "inverno",
     TRUE ~ NA_character_
   ))
 
@@ -244,7 +245,7 @@ generate_plot_V <- function(group) {
     geom_line(aes(y = HMI_VBatt_C4, color = "2"), linetype = "solid", linewidth=1) +
     geom_line(aes(y = HMI_VBatt_C5, color = "3"), linetype = "solid", linewidth=1) +
     geom_line(aes(y = HMI_VBatt_C7, color = "4"), linetype = "solid", linewidth=1) +
-    geom_hline(yintercept = 25.25, linetype = "dashed", color = "red") +
+    geom_hline(yintercept = 25.5, linetype = "dashed", color = "red") +
     labs(title = paste("Observation", group), x = "Time(s)", y = "Voltage (V)") +
     scale_color_manual(values = c("blue", "green", "orange", "purple"), name = "Battery") 
 }
@@ -264,7 +265,8 @@ generate_plot_P <- function(group) {
 #! ---------------- Creazione tabella per gruppi C2 -----------
 #Riempiamo  il nuovo dataset
 df_C2 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
-df_C2$Timestamp_iniziale <- character()
+
+
 #Gruppo
 df_C2$Gruppo <- unique(data$Gruppo)
 
@@ -308,15 +310,15 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
 df_C2$Timestamp_iniziale <- as.POSIXct(df_C2$Timestamp_iniziale)
 # Elimina le righe di df_C2 in cui POC è NA
 df_C2 <- na.omit(df_C2)
-
-# Imposta la lingua di base su inglese
-Sys.setlocale("LC_TIME", "C")
-
-plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, type = "line", col = "blue", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 1")
-
-
-plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, pch = 16, col = "blue", cex = .5,
-     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 1")
+# 
+# # Imposta la lingua di base su inglese
+# Sys.setlocale("LC_TIME", "C")
+# 
+# plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, type = "line", col = "blue", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 1")
+# 
+# 
+# plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, pch = 16, col = "blue", cex = .5,
+#      xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 1")
 
 df_C2 <- subset(df_C2, select = -Timestamp_iniziale)
 
@@ -324,7 +326,6 @@ df_C2 <- subset(df_C2, select = -Timestamp_iniziale)
 #! ---------------- Creazione tabella per gruppi C4 -----------
 #Riempiamo il nuovo dataset
 df_C4 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
-df_C4$Timestamp_iniziale <- character()
 
 # Gruppo
 df_C4$Gruppo <- unique(data$Gruppo)
@@ -369,15 +370,15 @@ df_C4$Timestamp_iniziale <- as.POSIXct(df_C4$Timestamp_iniziale)
 # Elimina le righe di df_C4 in cui POC è NA
 df_C4 <- na.omit(df_C4)
 
-# Imposta la lingua di base su inglese
-Sys.setlocale("LC_TIME", "C")
-
-# Line Plot - Battery 4
-plot(df_C4$Timestamp_iniziale, df_C4$V_iniziale, type = "line", col = "green", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 2")
-
-# Scatter Plot - Battery 4
-plot(df_C4$Timestamp_iniziale, df_C4$V_iniziale, pch = 16, col = "green", cex = .5,
-     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 2")
+# # Imposta la lingua di base su inglese
+# Sys.setlocale("LC_TIME", "C")
+# 
+# # Line Plot - Battery 4
+# plot(df_C4$Timestamp_iniziale, df_C4$V_iniziale, type = "line", col = "green", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 2")
+# 
+# # Scatter Plot - Battery 4
+# plot(df_C4$Timestamp_iniziale, df_C4$V_iniziale, pch = 16, col = "green", cex = .5,
+#      xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 2")
 
 # Rimuovi la colonna Timestamp_iniziale
 df_C4 <- subset(df_C4, select = -Timestamp_iniziale)
@@ -386,7 +387,6 @@ df_C4 <- subset(df_C4, select = -Timestamp_iniziale)
 #! ---------------- Creazione tabella per gruppi C5 -----------
 #Riempiamo il nuovo dataset
 df_C5 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
-df_C5$Timestamp_iniziale <- character()
 
 # Gruppo
 df_C5$Gruppo <- unique(data$Gruppo)
@@ -431,15 +431,15 @@ df_C5$Timestamp_iniziale <- as.POSIXct(df_C5$Timestamp_iniziale)
 # Elimina le righe di df_C5 in cui POC è NA
 df_C5 <- na.omit(df_C5)
 
-# Imposta la lingua di base su inglese
-Sys.setlocale("LC_TIME", "C")
-
-# Line Plot - Battery C5
-plot(df_C5$Timestamp_iniziale, df_C5$V_iniziale, type = "line", col = "orange", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 3")
-
-# Scatter Plot - Battery C5
-plot(df_C5$Timestamp_iniziale, df_C5$V_iniziale, pch = 16, col = "orange", cex = .5,
-     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 3")
+# # Imposta la lingua di base su inglese
+# Sys.setlocale("LC_TIME", "C")
+# 
+# # Line Plot - Battery C5
+# plot(df_C5$Timestamp_iniziale, df_C5$V_iniziale, type = "line", col = "orange", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 3")
+# 
+# # Scatter Plot - Battery C5
+# plot(df_C5$Timestamp_iniziale, df_C5$V_iniziale, pch = 16, col = "orange", cex = .5,
+#      xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 3")
 
 # Rimuovi la colonna Timestamp_iniziale
 df_C5 <- subset(df_C5, select = -Timestamp_iniziale)
@@ -448,7 +448,6 @@ df_C5 <- subset(df_C5, select = -Timestamp_iniziale)
 #! ---------------- Creazione tabella per gruppi C7 -----------
 # Riempiamo il nuovo dataset
 df_C7 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
-df_C7$Timestamp_iniziale <- character()
 
 # Gruppo
 df_C7$Gruppo <- unique(data$Gruppo)
@@ -493,15 +492,15 @@ df_C7$Timestamp_iniziale <- as.POSIXct(df_C7$Timestamp_iniziale)
 # Elimina le righe di df_C7 in cui POC è NA
 df_C7 <- na.omit(df_C7)
 
-# Imposta la lingua di base su inglese
-Sys.setlocale("LC_TIME", "C")
-
-# Line Plot - Battery C7
-plot(df_C7$Timestamp_iniziale, df_C7$V_iniziale, type = "line", col = "purple", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 4")
-
-# Scatter Plot - Battery C7
-plot(df_C7$Timestamp_iniziale, df_C7$V_iniziale, pch = 16, col = "purple", cex = .5,
-     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 4")
+# # Imposta la lingua di base su inglese
+# Sys.setlocale("LC_TIME", "C")
+# 
+# # Line Plot - Battery C7
+# plot(df_C7$Timestamp_iniziale, df_C7$V_iniziale, type = "line", col = "purple", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 4")
+# 
+# # Scatter Plot - Battery C7
+# plot(df_C7$Timestamp_iniziale, df_C7$V_iniziale, pch = 16, col = "purple", cex = .5,
+#      xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 4")
 
 # Rimuovi la colonna Timestamp_iniziale
 df_C7 <- subset(df_C7, select = -Timestamp_iniziale)
@@ -510,19 +509,21 @@ df_C7 <- subset(df_C7, select = -Timestamp_iniziale)
 #! ---------------- Divisione dei gruppi rispetto ai POC ----------------
 
 # Creare un vettore per ciascun POC
-gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "POC_1"]
-gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "POC_2"]
-gruppi_POC_3 <- df_C2$Gruppo[df_C2$POC == "POC_3"]
-gruppi_POC_4 <- df_C2$Gruppo[df_C2$POC == "POC_4"]
-gruppi_POC_5 <- df_C2$Gruppo[df_C2$POC == "POC_5"]
-gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "POC_6"]
-gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "POC_7"]
-gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
+# gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "POC_1"]
+# gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "POC_2"]
+# gruppi_POC_3 <- df_C2$Gruppo[df_C2$POC == "POC_3"]
+# gruppi_POC_4 <- df_C2$Gruppo[df_C2$POC == "POC_4"]
+# gruppi_POC_5 <- df_C2$Gruppo[df_C2$POC == "POC_5"]
+# gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "POC_6"]
+# gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "POC_7"]
+# gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
 
 #Generiamo i plot relativi al solo POC_4
-plot_list <- lapply(gruppi_POC_7[1:5], function(gr) generate_plot_V(gr))
-grid.arrange(grobs = plot_list, ncol = 5, top = "POC_7")  
+# plot_list <- lapply(gruppi_POC_7[1:5], function(gr) generate_plot_V(gr))
+# grid.arrange(grobs = plot_list, ncol = 5, top = "POC_7")  
 
-#saveRDS(df_C2, "df_C2.rds")
-
+ saveRDS(df_C2, "df_C2_C7/df_C2.rds")
+ saveRDS(df_C4, "df_C2_C7/df_C4.rds")
+ saveRDS(df_C5, "df_C2_C7/df_C5.rds")
+ saveRDS(df_C7, "df_C2_C7/df_C7.rds")
 

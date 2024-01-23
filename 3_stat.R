@@ -6,7 +6,7 @@ library(stats)
 library(corrplot)
 library(reshape2)
 
-load("workspace/my_workspace_stat.RData")
+#load("workspace/my_workspace_stat.RData")
 #save.image(file = "workspace/my_workspace_stat.RData")
 
 df_C2 <- readRDS("df_C2_C7/df_C2.rds")
@@ -35,17 +35,17 @@ df_C2 <- df_C2 %>%
     grepl("8", POC) ~ 8,
     TRUE ~ as.numeric(POC)  # Mantieni i valori originali se non corrispondono a nessuno dei casi sopra
   ))
-
+df_C2$Mese <- as.numeric(df_C2$Mese)
 
 #! ---------------- Divisione dei gruppi rispetto ai POC ----------------
-gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "POC_1"]
-gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "POC_2"]
-gruppi_POC_3 <- df_C2$Gruppo[df_C2$POC == "POC_3"]
-gruppi_POC_4 <- df_C2$Gruppo[df_C2$POC == "POC_4"]
-gruppi_POC_5 <- df_C2$Gruppo[df_C2$POC == "POC_5"]
-gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "POC_6"]
-gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "POC_7"]
-gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
+# gruppi_POC_1 <- df_C2$Gruppo[df_C2$POC == "1"]
+# gruppi_POC_2 <- df_C2$Gruppo[df_C2$POC == "2"]
+# gruppi_POC_3 <- df_C2$Gruppo[df_C2$POC == "3"]
+# gruppi_POC_4 <- df_C2$Gruppo[df_C2$POC == "4"]
+# gruppi_POC_5 <- df_C2$Gruppo[df_C2$POC == "5"]
+# gruppi_POC_6 <- df_C2$Gruppo[df_C2$POC == "6"]
+# gruppi_POC_7 <- df_C2$Gruppo[df_C2$POC == "7"]
+# gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "8"]
 
 #! ---------------- corr_matrix e matrix plot -------------
 
@@ -53,7 +53,7 @@ gruppi_POC_8 <- df_C2$Gruppo[df_C2$POC == "POC_8"]
 corr_matrix <- df_C2 %>% 
   dplyr::select(where(is.numeric)) %>%  
   # Rimuovi alcune colonne non necessarie per la correlazione
-  select(-Gruppo, -Amperora, -Wattora, -POC, -Stagione) %>%
+  select(-Gruppo, -Amperora, -Wattora, -POC) %>% #, -Stagione
   as.matrix() %>%
   cor()
 
@@ -64,7 +64,7 @@ corrplot(corr_matrix)
 library(GGally) # Carica la libreria GGally
 
 # Crea un matrix plot che mostra scatter plots per tutte le coppie di variabili nel subset del dataframe
-ggpairs(subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora)))
+ggpairs(subset(df_C2, select = -c(Gruppo, Wattora, Amperora)))
 
 
 #!----------------- Boxplot--------------
@@ -116,9 +116,10 @@ grid()
 
 #! ---------------- PCA  -----------
  
-# Rendiamo stagione e poc  variabili di tipo categorico usando "factor"
+# Rendiamo stagione, mese e poc  variabili di tipo categorico usando "factor"
 df_C2$POC <- as.factor(df_C2$POC)
 df_C2$Stagione <- as.factor(df_C2$Stagione)
+df_C2$Mese <- as.factor(df_C2$Mese)
 
 # Creiamo una funzione per rappresentare i risultati del clustering in base al poc
 PCA_strati_POC <- function(poc) {
@@ -214,7 +215,7 @@ k_seq <- 2:10
 silhouette_vec <- numeric(length(k_seq)) 
 for (kk in seq_along(k_seq)) {
   ii <- k_seq[kk]
-  X <- subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora))
+  X <- subset(df_C2, select = -c(Gruppo, Wattora, Amperora))#, POC, Stagione, Mese))
   X <- X[df_C2$POC %in% c(7, 8), ]
   km_out <- kmeans(X, centers = ii, nstart = 100) 
   cluster_kk <- km_out$cluster
@@ -226,22 +227,114 @@ plot(k_seq, silhouette_vec, type = "l", xlab = "K", ylab = "Silhouette (average)
 points(k_seq[which.max(silhouette_vec)], max(silhouette_vec), col = "red", pch = 16)
 grid()
 
-# Eseguiamo il clustering K-means con K=3 sull'intero dataframe
-km.out <- kmeans(X, 3, nstart = 20) 
+
+
+
+
+# Eseguiamo il clustering K-means con K=3 sul dataframe completo
+km.out <- kmeans(df_C2, 3, nstart = 100) 
+
+km.out$tot.withinss # Visualizziamo la somma della varianza intra-cluster totale
+names(km.out)# Visualizziamo i nomi degli oggetti restituiti dall'output di kmeans
+km.out$cluster # Visualizziamo i cluster assegnati alle osservazioni
+
+df_C2$Cluster <- as.factor(km.out$cluster)
+
+library(ggplot2)
+# Visualizza un grafico a dispersione per V con colori differenti per i cluster
+ggplot(df_C2, aes(x = Mese, y = V_iniziale, color = Cluster)) +
+  geom_point() +
+  labs(title = "Scatter Plot Cluster - Initial Voltage") +
+  xlab("Month") +
+  ylab("Initial Voltage") +
+  theme_minimal()
+
+# Visualizza un grafico a dispersione per I con colori differenti per i cluster
+ggplot(df_C2, aes(x = Mese, y = I_iniziale, color = Cluster)) +
+  geom_point() +
+  labs(title = "Scatter Plot Cluster - Initial Intensity") +
+  xlab("Month") +
+  ylab("Initial intensity") +
+  theme_minimal()
+
+# 
+# # Visualizza un grafico a dispersione con colori differenti per i POC
+# ggplot(df_C2, aes(x = Mese, y = V_iniziale, color = POC)) +
+#   geom_point() +
+#   labs(title = "Scatter Plot POC - Initial Voltage") +
+#   xlab("Month") +
+#   ylab("Initial Voltage") +
+#   theme_minimal()
+
+
+# Visualizza un grafico a barre che mostra la distribuzione dei cluster
+ggplot(df_C2, aes(x = Cluster)) +
+  geom_bar() +
+  labs(title = "Clusters' Distribution") +
+  xlab("Cluster") +
+  ylab("Number of Observations") +
+  theme_minimal()
+
+
+# Visualizza un boxplot per ogni cluster
+ggplot(df_C2, aes(x = Cluster, y = V_iniziale, fill = Cluster)) +
+  geom_boxplot() +
+  labs(title = "Boxplot for Clusters") +
+  xlab("Cluster") +
+  ylab("Initial Voltage") +
+  theme_minimal()
+
+
+# Impostiamo il layout a 2 righe e 1 colonna per i prossimi grafici
+#par(mfrow=c(2,1))
+
+#plot(factor(km.out$cluster))# Plot della variabile cluster assegnata da K-means
+
+#plot(df_C2$POC)# Plot della variabile POC nel dataframe df_C2
+
+par(pty="s") # Ripristiniamo il layout di default dei grafici
+
+
+
+
+# Eseguiamo il clustering K-means con K=2 sul dataframe contenente solo POC 7 e 8
+km.out <- kmeans(X, 2, nstart = 20) 
 
 km.out$tot.withinss # Visualizziamo la somma della varianza intra-cluster totale
 names(km.out)# Visualizziamo i nomi degli oggetti restituiti dall'output di kmeans
 km.out$cluster # Visualizziamo i cluster assegnati alle osservazioni
 
 
-# Impostiamo il layout a 2 righe e 1 colonna per i prossimi grafici
-par(mfrow=c(2,1))
+# Aggiungi le assegnazioni dei cluster al dataframe
 
-plot(factor(km.out$cluster))# Plot della variabile cluster assegnata da K-means
+X$Cluster <- as.factor(km.out$cluster)
 
-plot(df_C2$POC)# Plot della variabile POC nel dataframe df_C2
+library(ggplot2)
+# Visualizza un grafico a dispersione con colori differenti per i cluster
+ggplot(X, aes(x = Stagione, y = V_iniziale, color = Cluster)) +
+  geom_point() +
+  labs(title = "Scatter Plot Cluster - Initial Voltage") +
+  xlab("Season") +
+  ylab("Initial Voltage") +
+  theme_minimal()
 
-par(pty="s") # Ripristiniamo il layout di default dei grafici
+# Visualizza un grafico a dispersione con colori differenti per i POC
+# ggplot(X, aes(x = Stagione, y = V_iniziale, color = POC)) +
+#   geom_point() +
+#   labs(title = "Scatter Plot POC - Initial Voltage") +
+#   xlab("Season") +
+#   ylab("Initial Voltage") +
+#   theme_minimal()
+
+
+# Visualizza un grafico a barre che mostra la distribuzione dei cluster
+ggplot(X, aes(x = Cluster)) +
+  geom_bar() +
+  labs(title = "Distribuzione dei Cluster") +
+  xlab("Cluster") +
+  ylab("Number of Observations") +
+  theme_minimal()
+
 
 
 # Eseguiamo il clustering K-means sugli score delle prime due PC ottenute da un'analisi PCA
@@ -260,6 +353,16 @@ text(scores_PC1_2$PC1, scores_PC1_2$PC2, labels = etich, col = valori$clusters.k
 abline(parameters(m2)[1:2, 1], lty = 3)
 abline(parameters(m2)[1:2, 2], lty = 3)
 abline(h = 0, v = 0, lty = 2)
+
+
+
+
+
+
+
+
+
+
 
 #! ---------------- Regressione ------------------
 #* Regressione sugli Amperora
