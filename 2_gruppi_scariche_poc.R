@@ -5,7 +5,7 @@ library(ggplot2)
 
  
 #load("workspace/my_workspace_project_clean.RData")
-#save.image(file = "my_workspace_project_clean.RData")
+save.image(file = "workspace/my_workspace_project_clean.RData")
 
 data <- readRDS("battery_clean.rds")
 
