@@ -4,8 +4,8 @@ library(dplyr)
 library(ggplot2)
 
  
-#load("workspace/my_workspace_project_clean.RData")
-save.image(file = "workspace/my_workspace_project_clean.RData")
+load("workspace/my_workspace_project_clean.RData")
+#save.image(file = "workspace/my_workspace_project_clean.RData")
 
 data <- readRDS("battery_clean.rds")
 
@@ -267,7 +267,7 @@ df_C2 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
 df_C2$Timestamp_iniziale <- character()
 #Gruppo
 df_C2$Gruppo <- unique(data$Gruppo)
-#Timestamp_iniziale <- rep(0, length(unique(data$Gruppo)))
+
 
 for (group in seq(1, max(data$Gruppo) - 1)) {
   subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C2 < 0, ]
@@ -312,24 +312,28 @@ df_C2 <- na.omit(df_C2)
 # Imposta la lingua di base su inglese
 Sys.setlocale("LC_TIME", "C")
 
-plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, type = "line", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot")
+plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, type = "line", col = "blue", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 1")
 
 
 plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, pch = 16, col = "blue", cex = .5,
-     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot ")
+     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 1")
 
 df_C2 <- subset(df_C2, select = -Timestamp_iniziale)
 
 
 #! ---------------- Creazione tabella per gruppi C4 -----------
-# Riempiamo il nuovo dataset
+#Riempiamo il nuovo dataset
 df_C4 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
+df_C4$Timestamp_iniziale <- character()
 
 # Gruppo
 df_C4$Gruppo <- unique(data$Gruppo)
 
 for (group in seq(1, max(data$Gruppo) - 1)) {
   subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C4 < 0, ]
+  
+  # Timestamp iniziale
+  df_C4$Timestamp_iniziale[group] <- as.character(subset_gruppo$Timestamp[1])
   
   # I iniziale finale e media
   df_C4$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C4[subset_gruppo$HMI_IBatt_C4 < 0], 1)
@@ -359,21 +363,39 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   # POC
   df_C4$POC[group] <- subset_gruppo$POC_ID[subset_gruppo$POC_ID != 0 & subset_gruppo$HMI_IBatt_C4 < 0][1]
   
-}
+}  
 
+df_C4$Timestamp_iniziale <- as.POSIXct(df_C4$Timestamp_iniziale)
 # Elimina le righe di df_C4 in cui POC è NA
 df_C4 <- na.omit(df_C4)
 
+# Imposta la lingua di base su inglese
+Sys.setlocale("LC_TIME", "C")
+
+# Line Plot - Battery 4
+plot(df_C4$Timestamp_iniziale, df_C4$V_iniziale, type = "line", col = "green", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 2")
+
+# Scatter Plot - Battery 4
+plot(df_C4$Timestamp_iniziale, df_C4$V_iniziale, pch = 16, col = "green", cex = .5,
+     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 2")
+
+# Rimuovi la colonna Timestamp_iniziale
+df_C4 <- subset(df_C4, select = -Timestamp_iniziale)
+
 
 #! ---------------- Creazione tabella per gruppi C5 -----------
-# Riempiamo il nuovo dataset
+#Riempiamo il nuovo dataset
 df_C5 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
+df_C5$Timestamp_iniziale <- character()
 
 # Gruppo
 df_C5$Gruppo <- unique(data$Gruppo)
 
 for (group in seq(1, max(data$Gruppo) - 1)) {
   subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C5 < 0, ]
+  
+  # Timestamp iniziale
+  df_C5$Timestamp_iniziale[group] <- as.character(subset_gruppo$Timestamp[1])
   
   # I iniziale finale e media
   df_C5$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C5[subset_gruppo$HMI_IBatt_C5 < 0], 1)
@@ -403,20 +425,39 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   # POC
   df_C5$POC[group] <- subset_gruppo$POC_ID[subset_gruppo$POC_ID != 0 & subset_gruppo$HMI_IBatt_C5 < 0][1]
   
-}
+}  
 
+df_C5$Timestamp_iniziale <- as.POSIXct(df_C5$Timestamp_iniziale)
 # Elimina le righe di df_C5 in cui POC è NA
 df_C5 <- na.omit(df_C5)
+
+# Imposta la lingua di base su inglese
+Sys.setlocale("LC_TIME", "C")
+
+# Line Plot - Battery C5
+plot(df_C5$Timestamp_iniziale, df_C5$V_iniziale, type = "line", col = "orange", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 3")
+
+# Scatter Plot - Battery C5
+plot(df_C5$Timestamp_iniziale, df_C5$V_iniziale, pch = 16, col = "orange", cex = .5,
+     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 3")
+
+# Rimuovi la colonna Timestamp_iniziale
+df_C5 <- subset(df_C5, select = -Timestamp_iniziale)
+
 
 #! ---------------- Creazione tabella per gruppi C7 -----------
 # Riempiamo il nuovo dataset
 df_C7 <- data.frame(Gruppo = unique(data$Gruppo), stringsAsFactors = FALSE)
+df_C7$Timestamp_iniziale <- character()
 
 # Gruppo
 df_C7$Gruppo <- unique(data$Gruppo)
 
 for (group in seq(1, max(data$Gruppo) - 1)) {
   subset_gruppo <- data[data$Gruppo == group & data$HMI_IBatt_C7 < 0, ]
+  
+  # Timestamp iniziale
+  df_C7$Timestamp_iniziale[group] <- as.character(subset_gruppo$Timestamp[1])
   
   # I iniziale finale e media
   df_C7$I_finale[group] <- tail(subset_gruppo$HMI_IBatt_C7[subset_gruppo$HMI_IBatt_C7 < 0], 1)
@@ -446,10 +487,24 @@ for (group in seq(1, max(data$Gruppo) - 1)) {
   # POC
   df_C7$POC[group] <- subset_gruppo$POC_ID[subset_gruppo$POC_ID != 0 & subset_gruppo$HMI_IBatt_C7 < 0][1]
   
-}
+}  
 
+df_C7$Timestamp_iniziale <- as.POSIXct(df_C7$Timestamp_iniziale)
 # Elimina le righe di df_C7 in cui POC è NA
 df_C7 <- na.omit(df_C7)
+
+# Imposta la lingua di base su inglese
+Sys.setlocale("LC_TIME", "C")
+
+# Line Plot - Battery C7
+plot(df_C7$Timestamp_iniziale, df_C7$V_iniziale, type = "line", col = "purple", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot - Battery 4")
+
+# Scatter Plot - Battery C7
+plot(df_C7$Timestamp_iniziale, df_C7$V_iniziale, pch = 16, col = "purple", cex = .5,
+     xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 4")
+
+# Rimuovi la colonna Timestamp_iniziale
+df_C7 <- subset(df_C7, select = -Timestamp_iniziale)
 
 
 #! ---------------- Divisione dei gruppi rispetto ai POC ----------------
