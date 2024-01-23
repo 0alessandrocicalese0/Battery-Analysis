@@ -309,6 +309,9 @@ df_C2$Timestamp_iniziale <- as.POSIXct(df_C2$Timestamp_iniziale)
 # Elimina le righe di df_C2 in cui POC è NA
 df_C2 <- na.omit(df_C2)
 
+# Imposta la lingua di base su inglese
+Sys.setlocale("LC_TIME", "C")
+
 plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, type = "line", xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Line Plot")
 
 
