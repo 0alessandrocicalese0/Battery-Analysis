@@ -320,7 +320,7 @@ df_C2 <- na.omit(df_C2)
 # plot(df_C2$Timestamp_iniziale, df_C2$V_iniziale, pch = 16, col = "blue", cex = .5,
 #      xlab = "Initial Timestamp", ylab = "Initial Voltage", main = "Scatter Plot - Battery 1")
 
-df_C2 <- subset(df_C2, select = -Timestamp_iniziale)
+#df_C2 <- subset(df_C2, select = -Timestamp_iniziale)
 
 
 #! ---------------- Creazione tabella per gruppi C4 -----------

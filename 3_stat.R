@@ -199,7 +199,7 @@ k_seq <- 2:10 # Definiamo una sequenza di possibili valori di K per il clusterin
 silhouette_vec <- numeric(length(k_seq)) # Inizializziamo un vettore per memorizzare le misure di Silhouette per ogni K
 # Iteriamo su diversi valori di K
 for (kk in seq_along(k_seq)) {
-  X <- subset(df_C2, select = -c(Gruppo, POC, Stagione, Mese, Wattora, Amperora))# Selezioniamo le colonne numeriche del dataframe escludendo alcune colonne specifiche
+  X <- subset(df_C2, select = -c(Gruppo, Timestamp_iniziale,POC, Stagione, Mese, Wattora, Amperora))# Selezioniamo le colonne numeriche del dataframe escludendo alcune colonne specifiche
   km_out <- kmeans(X, centers = k_seq[kk], nstart = 100)   # Eseguiamo il clustering K-means con il valore corrente di K
   cluster_kk <- km_out$cluster  # Otteniamo i cluster assegnati a ciascuna osservazione
   sil <- silhouette(cluster_kk, dist = dist(X)) # Calcoliamo la misura di Silhouette per valutare la coesione e la separazione dei cluster
@@ -215,7 +215,7 @@ k_seq <- 2:10
 silhouette_vec <- numeric(length(k_seq)) 
 for (kk in seq_along(k_seq)) {
   ii <- k_seq[kk]
-  X <- subset(df_C2, select = -c(Gruppo, Wattora, Amperora))#, POC, Stagione, Mese))
+  X <- subset(df_C2, select = -c(Gruppo, Timestamp_iniziale, Wattora, Amperora))#, POC, Stagione, Mese))
   X <- X[df_C2$POC %in% c(7, 8), ]
   km_out <- kmeans(X, centers = ii, nstart = 100) 
   cluster_kk <- km_out$cluster
@@ -232,7 +232,7 @@ grid()
 
 
 # Eseguiamo il clustering K-means con K=3 sul dataframe completo
-km.out <- kmeans(df_C2, 3, nstart = 100) 
+km.out <- kmeans(subset(df_C2, select = -c(Timestamp_iniziale)), 3, nstart = 100) 
 
 km.out$tot.withinss # Visualizziamo la somma della varianza intra-cluster totale
 names(km.out)# Visualizziamo i nomi degli oggetti restituiti dall'output di kmeans
@@ -242,20 +242,38 @@ df_C2$Cluster <- as.factor(km.out$cluster)
 
 library(ggplot2)
 # Visualizza un grafico a dispersione per V con colori differenti per i cluster
-ggplot(df_C2, aes(x = Mese, y = V_iniziale, color = Cluster)) +
-  geom_point() +
+ggplot(df_C2, aes(x = Timestamp_iniziale, y = V_iniziale, color = Cluster)) +
+  geom_point(cex=1) +
+  geom_hline(yintercept = 25.5, linetype = "dashed", color = "red") +
   labs(title = "Scatter Plot Cluster - Initial Voltage") +
   xlab("Month") +
   ylab("Initial Voltage") +
   theme_minimal()
 
 # Visualizza un grafico a dispersione per I con colori differenti per i cluster
-ggplot(df_C2, aes(x = Mese, y = I_iniziale, color = Cluster)) +
-  geom_point() +
+ggplot(df_C2, aes(x = Timestamp_iniziale, y = I_iniziale, color = Cluster)) +
+  geom_line() +
   labs(title = "Scatter Plot Cluster - Initial Intensity") +
   xlab("Month") +
   ylab("Initial intensity") +
   theme_minimal()
+
+install.packages("plotly")
+library(plotly)
+
+# Creazione del grafico 3D con plotly
+plot_3d <- plot_ly(df_C2, x = ~Timestamp_iniziale, y = ~I_iniziale, z = ~V_iniziale,
+                   color = ~as.factor(Cluster), type = "scatter3d",size = 1) %>%
+  layout(scene = list(title = "3D Scatter Plot - Initial Intensity vs. Voltage",
+                      xaxis = list(title = "Timestamp"),
+                      yaxis = list(title = "Initial Intensity"),
+                      zaxis = list(title = "Initial Voltage")))
+
+# Visualizza il grafico plotly
+plot_3d
+
+
+
 
 # 
 # # Visualizza un grafico a dispersione con colori differenti per i POC
